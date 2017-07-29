@@ -1,56 +1,75 @@
 package com.bilal.timelynotification;
 
-import android.app.Notification;
+import android.app.IntentService;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
-import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
+import android.util.Log;
 
 /**
  * Created by Bilal on 29-Jul-17.
  */
 
-public class MyService extends Service {
-    private NotificationManager mManager;
+public class MyService extends IntentService {
 
-    @Override
-    public IBinder onBind(Intent arg0)
-    {
-        // TODO Auto-generated method stub
-        return null;
+    public MyService() {
+        super("MyTimelyService");
     }
 
+    /**
+     * The IntentService calls this method from the default worker thread with
+     * the intent that started the service. When this method returns, IntentService
+     * stops the service, as appropriate.
+     */
     @Override
-    public void onCreate()
-    {
-        // TODO Auto-generated method stub
-        super.onCreate();
+    protected void onHandleIntent(Intent intent) {
+        // Normally we would do some work here, like download a file.
+        // For our sample, we just sleep for 5 seconds.
+        try {
+            Log.i("Service", "Service started");
+            buildNotification(intent);
+        } catch (Exception e) {
+            // Restore interrupt status.
+            Log.e("Service", e.toString());
+            Thread.currentThread().interrupt();
+        }
     }
 
-    @SuppressWarnings("static-access")
-    @Override
-    public void onStart(Intent intent, int startId)
-    {
-        super.onStart(intent, startId);
+    void buildNotification(Intent intent) {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("My notification")
+                        .setContentText("Hello World!");
+        // Creates an explicit intent for an Activity in your app
+        Intent resultIntent = new Intent(this, MainActivity.class);
 
-        mManager = (NotificationManager) this.getApplicationContext().getSystemService(this.getApplicationContext().NOTIFICATION_SERVICE);
-        Intent intent1 = new Intent(this.getApplicationContext(),MainActivity.class);
+        // The stack builder object will contain an artificial back stack for the
+        // started Activity.
+        // This ensures that navigating backward from the Activity leads out of
+        // your application to the Home screen.
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        // Adds the back stack for the Intent (but not the Intent itself)
+        stackBuilder.addParentStack(MainActivity.class);
+        // Adds the Intent that starts the Activity to the top of the stack
+        stackBuilder.addNextIntent(resultIntent);
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(
+                        0,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+        mBuilder.setContentIntent(resultPendingIntent);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-        Notification notification = new Notification(R.mipmap.ic_launcher,"This is a test message!", System.currentTimeMillis());
-        intent1.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP| Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-        PendingIntent pendingNotificationIntent = PendingIntent.getActivity( this.getApplicationContext(),0, intent1, PendingIntent.FLAG_UPDATE_CURRENT);
-        notification.flags |= Notification.FLAG_AUTO_CANCEL;
-        notification.setLatestEventInfo(this.getApplicationContext(), "AlarmManagerDemo", "This is a test message!", pendingNotificationIntent);
-
-        mManager.notify(0, notification);
+        // mNotificationId is a unique integer your app uses to identify the
+        // notification. For example, to cancel the notification, you can pass its ID
+        // number to NotificationManager.cancel().
+        int mNotificationId = 1;
+        mNotificationManager.notify(mNotificationId, mBuilder.build());
     }
 
-    @Override
-    public void onDestroy()
-    {
-        // TODO Auto-generated method stub
-        super.onDestroy();
-    }
 }
